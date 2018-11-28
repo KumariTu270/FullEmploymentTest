@@ -46,40 +46,38 @@ object CSVReader {
       .withColumn("Panchayat_Name", Utils.removeCode($"Panchayat_Name"))
       .withColumn("Village_Name", Utils.removeCode($"Village_Name"))
       .withColumn("Habitation_Name", Utils.removeCode($"Habitation_Name"))
-      .withColumn("Joining_Column" , lit("1"))
+     
 
     val df1 = districtCode
       .withColumnRenamed("District Code", "District_Code")
       .withColumnRenamed("State Code", "State_Code")
       .withColumn("District_Code", when(col("District_Code") === "0", "-999").otherwise($"District_Code"))
-      .withColumn("Joining_Column" , lit("1"))
+      
 
 
-    val indiaAffectedWaterArea = areasAffected.crossJoin(df1).drop("Joining_column")
-      .withColumn("Year", to_date($"Year", "dd/MM/yy").cast(DataTypes.DateType))
-      .filter($"Name of the State/Union territory and Districts".contains("*") === false)
+    
+    val indiaAffectedWaterArea = areasAffected.join(df1 , df1.col("Name of the State/Union territory and Districts") === affectedAreas.col("District_Name"))
+      .withColumn("Year", year(to_date($"Year", "dd/MM/yy").cast(DataTypes.DateType)))
       .drop("Name of the State/Union territory and Districts")
 
     indiaAffectedWaterArea.show()
 
-    //addTableToHive(indiaAffectedWaterArea)
+    addTableToHive(indiaAffectedWaterArea, "demo.india_affected_water_area")
     println("------------------Table added-----------------")
 
 
     //Second Problem
-    val totalCount = indiaAffectedWaterArea.withColumn("Quality_Parameter" , count($"Quality_Parameter"))
-      .withColumn("Frequency" , count($"Quality_Parameter")/12 )
-      .select(col("Village_Name") , col("Quality_Parameter") , col("Year") , col("Frequency"))
+    val totalCount = indiaAffectedWaterArea.groupBy("Quality_Parameter" , "Village_Name")
+        .count()
+   
 
-    totalCount.show
-   // addTableToHiveTable(totalCount)
+   totalCount.show()
+   addTableToHiveTable(totalCount ,"demo.total_Count_QParameter" )
 
   }
-  def addTableToHive(dataframe: DataFrame): Unit = {
-    dataframe.write.format("orc").mode(SaveMode.Append).saveAsTable("demo.india_affected_water_area")
+  def addTableToHive(dataframe: DataFrame , tblname:String): Unit = {
+    dataframe.write.format("orc").mode(SaveMode.Append).saveAsTable(tblname)
   }
-  def addTableToHiveTable(dataframe: DataFrame): Unit = {
-    dataframe.write.format("orc").mode(SaveMode.Append).saveAsTable("demo.total_Count_QParameter")
-  }
+ 
 }
 
