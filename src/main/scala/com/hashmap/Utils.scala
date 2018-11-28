@@ -9,7 +9,10 @@ object Utils {
       val name = locality.split("\\(")
       name(0)
     }
-    else {
+    else if (!locality.contains("(")) {
+      locality
+    }
+    esle{
       null
     }
   })
