@@ -1,4 +1,3 @@
-#This is git test
 package com.hashmap
 
 import org.apache.spark.sql.expressions.UserDefinedFunction
